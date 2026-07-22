@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>דַּף נָע</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@900&family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --bg:#0B0C10;
+    --surface:#16171D;
+    --surface-2:#1D1F27;
+    --border:#262838;
+    --blue:#5B8DEF;
+    --blue-light:#8AB0F5;
+    --blue-glow:rgba(91,141,239,0.45);
+    --green:#22C55E;
+    --red:#3A1418;
+    --red-text:#E5484D;
+    --text:#F5F6F8;
+    --text-muted:#8A8F9C;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:"Heebo","Segoe UI",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;flex-direction:column;
+    height:100vh;height:100dvh;overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
+  }
+
+  /* ===== Header ===== */
+  .app-header{
+    padding:20px 18px 12px;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    flex-shrink:0;z-index:20;
+  }
+  .titles{min-width:0;}
+  .app-header h1{
+    margin:0;font-weight:800;font-size:24px;letter-spacing:-.2px;color:var(--text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64vw;
+  }
+  .app-header h1.masthead{
+    font-family:"Frank Ruhl Libre",serif;font-weight:900;font-size:27px;letter-spacing:.5px;
+  }
+  .subtitle{font-size:13px;color:var(--text-muted);margin-top:4px;}
+  .header-btn{
+    background:rgba(91,141,239,0.08);border:1px solid var(--blue);color:var(--blue-light);
+    width:32px;height:32px;border-radius:8px;
+    box-shadow:0 0 10px rgba(91,141,239,0.28);
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;cursor:pointer;flex-shrink:0;
+    transition:box-shadow .2s, transform .1s;
+  }
+  .header-btn:active{transform:scale(0.94);}
+
+  /* ===== Screens ===== */
+  .screen{flex:1;display:none;min-height:0;overflow:auto;}
+  .screen.active{display:flex;flex-direction:column;}
+
+  /* ===== Upload screen (empty-state style) ===== */
+  #uploadScreen{
+    align-items:center;justify-content:center;
+    padding:20px 20px 30px;
+    gap:16px;
+    text-align:center;
+  }
+  .drop-zone{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    width:100%;max-width:420px;
+    padding:20px 20px;border-radius:18px;
+    cursor:pointer;
+    border:2px solid var(--blue);
+    background:linear-gradient(180deg, rgba(91,141,239,0.10), rgba(91,141,239,0.02));
+    box-shadow:0 0 22px rgba(91,141,239,0.28), inset 0 0 20px rgba(91,141,239,0.06);
+    transition:box-shadow .2s, border-color .2s, transform .1s;
+    min-height:170px;
+    user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  .drop-zone:active{transform:scale(0.98);}
+  .drop-zone.dragover{border-color:var(--blue-light); box-shadow:0 0 36px rgba(91,141,239,0.5), inset 0 0 28px rgba(91,141,239,0.1);}
+  .drop-zone.ready{
+    border-color:var(--blue-light);
+    box-shadow:0 0 34px rgba(91,141,239,0.45), inset 0 0 26px rgba(91,141,239,0.08);
+  }
+  #dzIdle{display:flex;flex-direction:column;align-items:center;}
+  .upload-icon{
+    width:50px;height:50px;border-radius:13px;
+    background:var(--surface-2);border:1px solid var(--blue);
+    box-shadow:0 0 14px rgba(91,141,239,0.32);
+    display:flex;align-items:center;justify-content:center;
+    font-size:21px;color:var(--blue-light);
+    margin-bottom:13px;
+    transition:transform .2s;
+  }
+  .empty-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;}
+  .empty-sub{font-size:12.5px;color:var(--text-muted);line-height:1.55;max-width:320px;margin:0 auto 4px;}
+  #fileInput{display:none;}
+
+  .file-card{
+    display:flex;align-items:center;gap:12px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:12px 14px;
+    width:100%;max-width:420px;
+    margin-bottom:16px;text-align:right;
+  }
+  .file-card .pdf-icon{
+    width:42px;height:42px;border-radius:12px;
+    background:var(--red);color:var(--red-text);
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;flex-shrink:0;
+  }
+  .file-card .finfo{flex:1;min-width:0;}
+  .file-card .fname{font-size:14.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file-card .fsize{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .status-pill{
+    background:rgba(34,197,94,0.12);color:var(--green);
+    font-size:11.5px;font-weight:700;
+    padding:5px 11px;border-radius:20px;flex-shrink:0;
+  }
+  .status-pill.raw{background:rgba(184,150,62,0.15);color:#D4A94E;}
+  .row-delete-btn{
+    background:transparent;border:none;color:var(--text-muted);
+    font-size:15px;line-height:1;cursor:pointer;padding:4px;flex-shrink:0;
+  }
+  .row-delete-btn:active{color:var(--red-text);}
+
+  .primary-btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    background:var(--blue);color:#fff;border:1px solid rgba(255,255,255,0.15);
+    padding:7px 16px;border-radius:6px;
+    font-size:13.5px;font-weight:600;
+    cursor:pointer;
+    box-shadow:0 1px 0 rgba(0,0,0,0.15);
+    transition:filter .15s, transform .1s;
+    font-family:"Heebo",sans-serif;
+  }
+  .primary-btn:hover{filter:brightness(1.08);}
+  .primary-btn:active{transform:scale(0.98);}
+  .primary-btn:disabled{background:var(--surface-2);color:var(--text-muted);border-color:var(--border);box-shadow:none;cursor:not-allowed;}
+
+  .progress-wrap{width:100%;max-width:420px;display:none;margin-top:14px;}
+  .progress-wrap.active{display:block;}
+  .progress-bar-bg{background:var(--surface-2);border-radius:6px;height:7px;overflow:hidden;}
+  .progress-bar-fill{background:var(--blue);height:100%;width:0%;transition:width .2s;}
+  .progress-label{font-size:12px;color:var(--text-muted);margin-top:8px;text-align:center;}
+
+  /* ===== Book / View screen ===== */
+  #bookScreen{
+    align-items:center;justify-content:flex-start;
+    padding:0;position:relative;
+  }
+  .book-main{
+    flex:1;width:100%;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:12px 16px 6px;min-height:0;overflow:hidden;
+  }
+  .book-stage{
+    perspective:1800px;
+    flex:1 1 auto;min-height:0;
+    width:auto;max-width:min(94vw, 720px);
+    aspect-ratio:0.72;
+    position:relative;
+    padding:14px;
+    background:radial-gradient(ellipse at 50% 30%, #1a1c24, var(--bg));
+    border-radius:24px;
+  }
+  .page-layer{
+    position:absolute;inset:14px;
+    background:#ffffff;
+    border-radius:16px;
+    overflow:hidden;
+    transform-style:preserve-3d;
+    transform-origin:right center;
+    backface-visibility:hidden;
+    will-change:transform;
+    box-shadow:-10px 10px 30px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .book-stage.dir-ltr .page-layer{transform-origin:left center;}
+  .page-layer img{width:100%;height:100%;object-fit:contain;display:block;background:#fff;}
+  .page-layer::after{
+    content:"";position:absolute;top:0;bottom:0;right:0;width:28px;
+    background:linear-gradient(to left, rgba(0,0,0,0.10), transparent);
+    pointer-events:none;
+  }
+  .book-stage.dir-ltr .page-layer::after{right:auto;left:0;background:linear-gradient(to right, rgba(0,0,0,0.10), transparent);}
+  .page-layer::before{
+    content:"";position:absolute;inset:0;z-index:3;
+    background:linear-gradient(to left, rgba(0,0,0,0.5), rgba(0,0,0,0.05) 55%, transparent 80%);
+    opacity:var(--shadeOpacity, 0);pointer-events:none;
+  }
+  .book-stage.dir-ltr .page-layer::before{background:linear-gradient(to right, rgba(0,0,0,0.5), rgba(0,0,0,0.05) 55%, transparent 80%);}
+  .page-layer.flip-fwd{animation:flipFwdRTL 1s cubic-bezier(.4,0,.2,1) forwards;}
+  .book-stage.dir-ltr .page-layer.flip-fwd{animation:flipFwdLTR 1s cubic-bezier(.4,0,.2,1) forwards;}
+  .page-layer.flip-fwd::before{animation:shadeIn 1s ease-in-out forwards;}
+  @keyframes flipFwdRTL{0%{transform:rotateY(0deg);}100%{transform:rotateY(115deg);}}
+  @keyframes flipFwdLTR{0%{transform:rotateY(0deg);}100%{transform:rotateY(-115deg);}}
+  @keyframes shadeIn{
+    0%{opacity:0;}
+    50%{opacity:.85;}
+    100%{opacity:0;}
+  }
+  .page-layer.flip-return{animation:flipReturnRTL 1s cubic-bezier(.4,0,.2,1) forwards;}
+  .book-stage.dir-ltr .page-layer.flip-return{animation:flipReturnLTR 1s cubic-bezier(.4,0,.2,1) forwards;}
+  .page-layer.flip-return::before{animation:shadeIn 1s ease-in-out forwards;}
+  @keyframes flipReturnRTL{0%{transform:rotateY(115deg);}100%{transform:rotateY(0deg);}}
+  @keyframes flipReturnLTR{0%{transform:rotateY(-115deg);}100%{transform:rotateY(0deg);}}
+  .drag-zone{position:absolute;inset:14px;z-index:10;cursor:grab;touch-action:none;}
+  .drag-zone:active{cursor:grabbing;}
+  .corner-hint{
+    position:absolute;z-index:11;pointer-events:none;
+    bottom:10px;left:10px;width:64px;height:64px;
+  }
+  .book-stage.dir-ltr .corner-hint{left:auto;right:10px;transform:scaleX(-1);}
+  .corner-hint .spark{
+    position:absolute;border-radius:50%;
+    background:var(--blue-light);
+    box-shadow:0 0 6px 2px var(--blue-glow);
+    opacity:0;
+  }
+  .corner-hint .s1{width:7px;height:7px;bottom:8px;left:8px;animation:sparkle 2.4s ease-in-out infinite;}
+  .corner-hint .s2{width:5px;height:5px;bottom:20px;left:20px;animation:sparkle 2.4s ease-in-out infinite .35s;}
+  .corner-hint .s3{width:4px;height:4px;bottom:32px;left:32px;animation:sparkle 2.4s ease-in-out infinite .7s;}
+  .corner-hint .s4{width:3px;height:3px;bottom:44px;left:44px;animation:sparkle 2.4s ease-in-out infinite 1.05s;}
+  @keyframes sparkle{
+    0%{opacity:0;transform:scale(.3) translate(3px,3px);}
+    35%{opacity:1;transform:scale(1) translate(0,0);}
+    70%{opacity:.7;transform:scale(.85) translate(-2px,-2px);}
+    100%{opacity:0;transform:scale(.3) translate(-4px,-4px);}
+  }
+
+  .dz-actions-grid{
+    display:grid;grid-template-columns:1fr 1fr;
+    gap:10px;width:100%;min-height:64px;
+  }
+  .dz-action-btn{
+    display:flex;align-items:center;justify-content:center;
+    border-radius:12px;cursor:pointer;
+    border:1px solid rgba(91,141,239,0.4);
+    background:rgba(91,141,239,0.08);
+    color:var(--text);font-size:14px;font-weight:700;
+    font-family:"Heebo",sans-serif;
+    transition:background .15s, transform .1s;
+  }
+  .dz-action-btn:active{transform:scale(0.96);background:rgba(91,141,239,0.18);}
+
+  .status-line{
+    font-size:12px;color:var(--text-muted);text-align:center;
+    min-height:16px;width:100%;max-width:420px;
+  }
+
+  .ready-books-label{
+    font-size:13px;font-weight:800;color:var(--text);
+    width:100%;max-width:420px;margin-top:4px;
+  }
+  .saved-book-item{
+    display:flex;align-items:center;gap:10px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:10px 12px;margin-top:8px;
+    width:100%;max-width:420px;text-align:right;
+    cursor:pointer;transition:border-color .15s, transform .1s;
+    user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  .saved-book-item:active{transform:scale(0.98);}
+  .saved-book-item:hover{border-color:var(--blue);}
+  .saved-book-item .pdf-icon{
+    width:38px;height:38px;border-radius:11px;
+    background:var(--red);color:var(--red-text);
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:800;flex-shrink:0;
+  }
+  .saved-book-item .sb-title{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .saved-book-item .sb-pages{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+
+  .dir-toggle{
+    display:inline-flex;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:6px;padding:2px;gap:2px;margin-top:2px;
+  }
+  .dir-option{
+    padding:6px 10px;border-radius:4px;border:none;
+    background:transparent;color:var(--text-muted);
+    font-size:11.5px;font-weight:600;cursor:pointer;
+    font-family:"Heebo",sans-serif;
+  }
+  .dir-option.active{background:var(--blue);color:#fff;}
+
+  .book-controls{display:flex;align-items:center;gap:14px;margin-top:16px;flex-shrink:0;}
+  .nav-btn{
+    width:34px;height:34px;border-radius:50%;
+    background:transparent;border:none;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;padding:0;
+  }
+  .nav-btn .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:var(--blue);
+    box-shadow:0 0 8px 2px var(--blue-glow), 0 0 2px 0 var(--blue-light);
+  }
+  .nav-btn:active .dot{transform:scale(0.85);}
+  .nav-btn:disabled{cursor:not-allowed;}
+  .nav-btn:disabled .dot{opacity:0.3;box-shadow:none;}
+  .page-counter{
+    background:var(--surface-2);color:var(--text);
+    padding:6px 14px;border-radius:6px;
+    font-size:12.5px;font-weight:600;min-width:70px;text-align:center;
+    font-variant-numeric:tabular-nums;
+    border:1px solid var(--border);
+  }
+
+  .action-bar{
+    width:100%;flex-shrink:0;
+    display:flex;justify-content:center;flex-wrap:wrap;
+    gap:8px;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:var(--surface);
+    border-top:1px solid var(--border);
+  }
+  .action-btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:5px;
+    padding:7px 11px;border-radius:6px;
+    font-size:12.5px;font-weight:600;font-family:"Heebo",sans-serif;
+    border:1px solid var(--border);cursor:pointer;
+    background:var(--surface-2);color:var(--text);
+  }
+  .action-btn.primary{background:var(--blue);color:#fff;border-color:rgba(255,255,255,0.15);}
+  .action-btn:active{transform:scale(0.97);}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.65);
+    display:none;align-items:center;justify-content:center;
+    z-index:300;padding:20px;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal-box{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    width:100%;max-width:380px;padding:18px;
+    max-height:88vh;overflow:auto;
+  }
+  .modal-box h3{margin:0 0 14px;font-size:15px;font-weight:800;color:var(--text);}
+  .modal-field{margin-bottom:16px;}
+  .modal-field label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;}
+  .modal-field input[type="text"]{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;
+    padding:8px 10px;font-size:13.5px;color:var(--text);font-family:"Heebo",sans-serif;
+  }
+  .field-hint{font-size:11px;color:var(--text-muted);margin-top:5px;line-height:1.5;}
+  .swatch-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .swatch{
+    width:30px;height:30px;border-radius:50%;cursor:pointer;
+    border:2px solid var(--border);padding:0;
+  }
+  .swatch.active{border-color:var(--blue-light);box-shadow:0 0 0 2px rgba(91,141,239,0.35);}
+  .pill-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .pill-option{
+    padding:6px 12px;border-radius:14px;border:1px solid var(--border);
+    background:var(--surface-2);color:var(--text-muted);
+    font-size:12.5px;font-weight:600;cursor:pointer;font-family:"Heebo",sans-serif;
+  }
+  .pill-option.active{background:var(--blue);color:#fff;border-color:rgba(255,255,255,0.15);}
+
+  .emoji-grid{
+    margin-top:8px;
+    max-height:180px;overflow-y:auto;
+    display:grid;grid-template-columns:repeat(7, 1fr);gap:4px;
+    background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+    padding:8px;
+  }
+  .emoji-tile{
+    display:flex;align-items:center;justify-content:center;
+    aspect-ratio:1;border-radius:6px;border:1px solid transparent;
+    background:transparent;cursor:pointer;font-size:19px;
+  }
+  .emoji-tile.active{background:var(--blue);border-color:var(--blue-light);}
+
+  .modal-actions{display:flex;gap:8px;margin-top:6px;}
+  .modal-actions button{flex:1;}
+  .btn-flat{
+    background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+    padding:9px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;
+    font-family:"Heebo",sans-serif;
+  }
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--surface);border:1px solid var(--border);color:var(--text);
+    padding:10px 20px;border-radius:20px;
+    font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;
+    z-index:200;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (prefers-reduced-motion: reduce){
+    .page-layer.flip-fwd,.page-layer.flip-return{animation:none;}
+    .page-layer.flip-fwd::before,.page-layer.flip-back::before{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="app-header">
+    <div class="titles">
+      <h1 id="headerTitle" class="masthead">דַּף נָע</h1>
+      <div class="subtitle" id="headerSubtitle">הפיכת PDF לספר דפדוף</div>
+    </div>
+    <button class="header-btn" id="backBtn" style="display:none;" title="חזרה להעלאה">➜</button>
+  </div>
+
+  <!-- ===== Upload / Edit screen ===== -->
+  <div class="screen active" id="uploadScreen">
+    <div class="drop-zone" id="dropZone">
+      <div id="dzIdle">
+        <div class="upload-icon" id="dropIcon">⬆</div>
+        <div class="empty-title" id="emptyTitle">עדיין אין ספר</div>
+        <div class="empty-sub" id="emptySub">העלו קובץ PDF כדי להפוך אותו לספר דיגיטלי עם דפדוף עמודים</div>
+      </div>
+      <div class="dz-actions-grid" id="dzActionsGrid" style="display:none;">
+        <button type="button" class="dz-action-btn" id="mergeBtn">מיזוג</button>
+        <button type="button" class="dz-action-btn" id="separateBtn">נוסף</button>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept="application/pdf">
+
+    <div class="status-line" id="statusLine"></div>
+
+    <div id="fileChipHolder" style="width:100%;max-width:420px;"></div>
+
+    <div id="savedBooksList" style="width:100%;max-width:420px;"></div>
+
+    <div class="dir-toggle" id="dirToggle">
+      <button type="button" class="dir-option active" data-dir="rtl">דפדוף מימין לשמאל</button>
+      <button type="button" class="dir-option" data-dir="ltr">דפדוף משמאל לימין</button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">מכין עמודים...</div>
+    </div>
+  </div>
+
+  <!-- ===== Book / View screen ===== -->
+  <div class="screen" id="bookScreen">
+    <div class="book-main">
+      <div class="book-stage" id="bookStage">
+        <div class="drag-zone" id="dragZone"></div>
+        <div class="corner-hint">
+          <span class="spark s1"></span>
+          <span class="spark s2"></span>
+          <span class="spark s3"></span>
+          <span class="spark s4"></span>
+        </div>
+      </div>
+      <div class="book-controls">
+        <button class="nav-btn" id="prevBtn"><span class="dot"></span></button>
+        <div class="page-counter" id="pageCounter">1 / 1</div>
+        <button class="nav-btn" id="nextBtn"><span class="dot"></span></button>
+      </div>
+    </div>
+    <div class="action-bar">
+      <button class="action-btn primary" id="shareBtn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.2"/><circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><line x1="8" y1="10.8" x2="16" y2="6.2"/><line x1="8" y1="13.2" x2="16" y2="17.8"/></svg> שלח לחבר</button>
+      <button class="action-btn secondary" id="htmlBtn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 6 3 12 8 18"/><polyline points="16 6 21 12 16 18"/></svg> הטמעה</button>
+      <button class="action-btn secondary" id="downloadBtn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><polyline points="7 11 12 16 17 11"/><path d="M5 19h14"/></svg> הורדה</button>
+    </div>
+  </div>
+
+  <!-- ===== Merge Target Modal ===== -->
+  <div class="modal-overlay" id="mergeTargetModal">
+    <div class="modal-box">
+      <h3>לאיזה ספר למזג?</h3>
+      <div id="mergeTargetList"></div>
+      <div class="modal-actions">
+        <button class="btn-flat" id="mergeTargetCancelBtn">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Share Modal ===== -->
+  <div class="modal-overlay" id="shareModal">
+    <div class="modal-box">
+      <h3>שיתוף הספר</h3>
+      <div class="modal-field">
+        <label>כותרת הספר</label>
+        <input type="text" id="shareTitleInput">
+      </div>
+      <div class="modal-field">
+        <label>קישור לספר (אחרי העלאה ל-GitHub Pages או אחסון אחר)</label>
+        <input type="text" id="shareUrlInput" placeholder="https://username.github.io/repo/book.html">
+        <div class="field-hint">אם ממלאים כתובת כאן, "שלח לחבר" ישתף את הקישור עצמו (עם תצוגה מקדימה) — לא את הקובץ.</div>
+      </div>
+      <div class="modal-field">
+        <label>תמונה לתצוגה מקדימה בקישור (אופציונלי)</label>
+        <input type="text" id="shareOgImageInput" placeholder="כתובת תמונה, למשל מ-GitHub Pages">
+        <div class="field-hint">מוצגת בוואטסאפ ליד הקישור. ברירת המחדל אחידה לכל הספרים, אבל אפשר להחליף אותה כאן לכל פרויקט בנפרד.</div>
+      </div>
+      <div class="modal-field">
+        <label>צבע כותרת</label>
+        <div class="swatch-row" id="titleSwatchRow">
+          <button type="button" class="swatch active" data-color="#F5F6F8" style="background:#F5F6F8" title="לבן"></button>
+          <button type="button" class="swatch" data-color="#0B0C10" style="background:#0B0C10" title="שחור"></button>
+          <button type="button" class="swatch" data-color="#5B8DEF" style="background:#5B8DEF" title="כחול"></button>
+          <button type="button" class="swatch" data-color="#E5488D" style="background:#E5488D" title="ורוד"></button>
+          <button type="button" class="swatch" data-color="#B8963E" style="background:#B8963E" title="זהב"></button>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>צבע רקע</label>
+        <div class="swatch-row" id="swatchRow">
+          <button type="button" class="swatch active" data-color="#0B0C10" style="background:#0B0C10" title="שחור"></button>
+          <button type="button" class="swatch" data-color="#FFFFFF" style="background:#FFFFFF" title="לבן"></button>
+          <button type="button" class="swatch" data-color="#FDE2E4" style="background:#FDE2E4" title="ורוד רך"></button>
+          <button type="button" class="swatch" data-color="#D6E9F5" style="background:#D6E9F5" title="תכלת רך"></button>
+          <button type="button" class="swatch" data-color="#E3F0D8" style="background:#E3F0D8" title="מנטה רכה"></button>
+          <button type="button" class="swatch" data-color="#FFF1D6" style="background:#FFF1D6" title="אפרסק רך"></button>
+          <button type="button" class="swatch" data-color="#E9DFF5" style="background:#E9DFF5" title="לבנדר רך"></button>
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>קונפטי (אפשר לבחור כמה)</label>
+        <div class="pill-row" id="confettiRow">
+          <button type="button" class="pill-option active" data-confetti="none">בלי קונפטי</button>
+          <button type="button" class="pill-option" data-confetti="hearts">💗 לבבות</button>
+          <button type="button" class="pill-option" data-confetti="stars">⭐ כוכבים</button>
+          <button type="button" class="pill-option" data-confetti="sparkles">✨ נצנצים</button>
+          <button type="button" class="pill-option" data-confetti="balloons">🎈 בלונים</button>
+          <button type="button" class="pill-option" data-confetti="flowers">🌸 פרחים</button>
+          <button type="button" class="pill-option" data-confetti="butterflies">🦋 פרפרים</button>
+          <button type="button" class="pill-option" data-confetti="snow">❄️ שלגים</button>
+          <button type="button" class="pill-option" data-confetti="party">🎊 קונפטי צבעוני</button>
+          <button type="button" class="pill-option" data-confetti="rainbow">🌈 קשת</button>
+          <button type="button" class="pill-option" data-confetti="mixed">🎉 כל מיני</button>
+        </div>
+        <button type="button" class="btn-flat" id="emojiPickerToggle" style="margin-top:8px;width:100%;">➕ בחירת אימוג׳י משלי</button>
+        <div class="emoji-grid" id="emojiGrid" style="display:none;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-flat" id="shareCancelBtn">ביטול</button>
+        <button class="primary-btn" id="shareConfirmBtn">שיתוף</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+let selectedFiles = [];
+let bookTitle = "ספר דיגיטלי";
+let pages = [];
+let currentIndex = 0;
+let isFlipping = false;
+let flipDirection = 'rtl';
+let shareBgColor = '#0B0C10';
+let shareTitleColor = '#F5F6F8';
+let shareOgImageUrl = '';
+let currentBookEntry = null;
+let shareConfettiTypes = [];
+let customConfettiEmojis = [];
+let readyBooks = [];
+let pendingFileAction = 'first'; // 'first' | 'merge' | 'separate'
+let mergeTargetIdx = null;
+
+const dropZone       = document.getElementById('dropZone');
+const dropIcon       = document.getElementById('dropIcon');
+const dzIdle         = document.getElementById('dzIdle');
+const dzActionsGrid  = document.getElementById('dzActionsGrid');
+const statusLine     = document.getElementById('statusLine');
+const mergeBtn       = document.getElementById('mergeBtn');
+const separateBtn    = document.getElementById('separateBtn');
+const savedBooksList = document.getElementById('savedBooksList');
+const fileInput      = document.getElementById('fileInput');
+const fileChipHolder = document.getElementById('fileChipHolder');
+const progressWrap   = document.getElementById('progressWrap');
+const progressFill   = document.getElementById('progressFill');
+const progressLabel  = document.getElementById('progressLabel');
+const emptyTitle     = document.getElementById('emptyTitle');
+const emptySub       = document.getElementById('emptySub');
+
+const uploadScreen = document.getElementById('uploadScreen');
+const bookScreen   = document.getElementById('bookScreen');
+const bookStage    = document.getElementById('bookStage');
+const pageCounter  = document.getElementById('pageCounter');
+const backBtn      = document.getElementById('backBtn');
+const headerTitle  = document.getElementById('headerTitle');
+const headerSubtitle = document.getElementById('headerSubtitle');
+
+const toastEl = document.getElementById('toast');
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(()=>toastEl.classList.remove('show'), 2200);
+}
+
+/* ---------- Upload handling ---------- */
+document.querySelectorAll('#dirToggle .dir-option').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#dirToggle .dir-option').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    flipDirection = btn.dataset.dir;
+  });
+});
+
+dropZone.addEventListener('click', ()=>{
+  if(selectedFiles.length > 0){
+    const chosenTitle = window.prompt('איך תרצה לקרוא לספר?', bookTitle);
+    if(chosenTitle === null) return;
+    if(chosenTitle.trim()) bookTitle = chosenTitle.trim();
+    startConversion();
+  }
+  else {
+    pendingFileAction = 'first';
+    fileInput.click();
+  }
+});
+dropZone.addEventListener('dragover', e=>{e.preventDefault(); dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e=>{
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if(e.dataTransfer.files && e.dataTransfer.files[0]){
+    pendingFileAction = selectedFiles.length > 0 ? 'merge' : 'first';
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+fileInput.addEventListener('change', e=>{
+  if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  fileInput.value = '';
+});
+
+mergeBtn.addEventListener('click', e=>{ e.stopPropagation(); openMergeTargetPicker(); });
+
+const mergeTargetModal = document.getElementById('mergeTargetModal');
+const mergeTargetList  = document.getElementById('mergeTargetList');
+
+function openMergeTargetPicker(){
+  if(readyBooks.length === 0){
+    toast('אין עדיין ספר קיים למזג אליו — קודם צרו ספר');
+    return;
+  }
+  if(readyBooks.length === 1){
+    mergeTargetIdx = 0;
+    pendingFileAction = 'merge';
+    fileInput.click();
+    return;
+  }
+  mergeTargetList.innerHTML = readyBooks.map((b, idx) => `
+    <div class="saved-book-item" data-idx="${idx}" style="margin-top:${idx === 0 ? 0 : 8}px;">
+      <div class="pdf-icon">PDF</div>
+      <div style="flex:1;min-width:0;">
+        <div class="sb-title">${escapeHtml(b.title)}</div>
+        <div class="sb-pages">${b.pages.length} עמודים</div>
+      </div>
+    </div>`).join('');
+  mergeTargetList.querySelectorAll('.saved-book-item').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      mergeTargetIdx = parseInt(row.dataset.idx, 10);
+      mergeTargetModal.classList.remove('active');
+      pendingFileAction = 'merge';
+      fileInput.click();
+    });
+  });
+  mergeTargetModal.classList.add('active');
+}
+document.getElementById('mergeTargetCancelBtn').addEventListener('click', ()=>{
+  mergeTargetModal.classList.remove('active');
+});
+mergeTargetModal.addEventListener('click', e=>{
+  if(e.target.id === 'mergeTargetModal') mergeTargetModal.classList.remove('active');
+});
+separateBtn.addEventListener('click', e=>{ e.stopPropagation(); pendingFileAction = 'separate'; fileInput.click(); });
+
+function setStatus(text){
+  statusLine.textContent = text || '';
+}
+
+function updateIdleUploadState(){
+  if(selectedFiles.length > 0) return;
+  if(readyBooks.length > 0){
+    dzIdle.style.display = 'none';
+    dzActionsGrid.style.display = 'grid';
+  } else {
+    dzIdle.style.display = '';
+    dzActionsGrid.style.display = 'none';
+    dropIcon.textContent = '⬆';
+    emptyTitle.textContent = 'עדיין אין ספר';
+    emptySub.textContent = 'העלו קובץ PDF כדי להפוך אותו לספר דיגיטלי עם דפדוף עמודים';
+    setStatus('');
+  }
+}
+
+function resetToBlank(){
+  selectedFiles = [];
+  bookTitle = "ספר דיגיטלי";
+  dropZone.classList.remove('ready');
+  dropZone.style.pointerEvents = '';
+  fileChipHolder.innerHTML = '';
+  updateIdleUploadState();
+}
+
+function setReadyVisuals(){
+  dzIdle.style.display = '';
+  dzActionsGrid.style.display = 'none';
+  dropZone.classList.add('ready');
+  dropIcon.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.2c-1.6-1.3-3.7-1.9-6.3-1.9v13.4c2.6 0 4.7.6 6.3 1.9 1.6-1.3 3.7-1.9 6.3-1.9V4.3c-2.6 0-4.7.6-6.3 1.9z"/><path d="M12 6.2v13.4"/></svg>';
+  emptyTitle.textContent = `יצירת ספר מ"${bookTitle}"`;
+  emptySub.textContent = 'לחצו כאן כדי להפוך את הקובץ לספר';
+}
+
+async function mergeFileIntoBook(file, targetIdx){
+  const target = readyBooks[targetIdx];
+  if(!target) return;
+  setStatus(`מוסיף עמודים ל"${target.title}"...`);
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    const total = pdf.numPages;
+    const newPages = [];
+    for(let i=1;i<=total;i++){
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({scale:1.5});
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({canvasContext: ctx, viewport}).promise;
+      newPages.push(canvas.toDataURL('image/jpeg', 0.82));
+      setStatus(`ממזג עמוד ${i} מתוך ${total} ל"${target.title}"...`);
+      await new Promise(r=>setTimeout(r,0));
+    }
+    target.pages = target.pages.concat(newPages);
+    renderSavedBooksList();
+    setStatus(`הקובץ מוזג לתוך "${target.title}"`);
+  }catch(err){
+    console.error(err);
+    toast('שגיאה במיזוג הקובץ');
+    setStatus('שגיאה במיזוג');
+  }
+}
+
+function handleFile(file){
+  if(file.type !== 'application/pdf'){
+    toast('נא לבחור קובץ PDF בלבד');
+    return;
+  }
+
+  const action = pendingFileAction;
+  pendingFileAction = 'first';
+
+  if(action === 'merge'){
+    if(mergeTargetIdx !== null && readyBooks[mergeTargetIdx]){
+      const targetIdx = mergeTargetIdx;
+      mergeTargetIdx = null;
+      mergeFileIntoBook(file, targetIdx);
+    }
+    return;
+  }
+
+  if(action === 'separate'){
+    selectedFiles = [file];
+    bookTitle = file.name.replace(/\.pdf$/i,'');
+    setReadyVisuals();
+    renderFileCards();
+    setStatus('הקובץ עלה, מוכן ליצירה');
+    return;
+  }
+
+  // 'first'
+  selectedFiles = [file];
+  bookTitle = file.name.replace(/\.pdf$/i,'');
+  setReadyVisuals();
+  renderFileCards();
+  setStatus('הקובץ עלה, מוכן ליצירה');
+}
+
+function renderSavedBooksList(){
+  if(readyBooks.length === 0){
+    savedBooksList.innerHTML = '';
+    return;
+  }
+  const labelText = readyBooks.length === 1 ? 'הפרויקט מוכן' : 'הפרויקטים מוכנים';
+  savedBooksList.innerHTML = `<div class="ready-books-label">${labelText}</div>` +
+    readyBooks.map((b, idx) => `
+    <div class="saved-book-item" data-idx="${idx}">
+      <div class="pdf-icon">PDF</div>
+      <div style="flex:1;min-width:0;">
+        <div class="sb-title">${escapeHtml(b.title)}</div>
+        <div class="sb-pages">${b.pages.length} עמודים</div>
+      </div>
+      <button type="button" class="row-delete-btn" data-idx="${idx}" title="מחיקה">✕</button>
+      <div class="status-pill sb-open" data-idx="${idx}">מוכן</div>
+    </div>`).join('');
+  savedBooksList.querySelectorAll('.saved-book-item').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const b = readyBooks[parseInt(card.dataset.idx, 10)];
+      if(!b) return;
+      pages = b.pages;
+      bookTitle = b.title;
+      flipDirection = b.flipDirection;
+      currentBookEntry = b;
+      currentIndex = 0;
+      openBook();
+    });
+  });
+  savedBooksList.querySelectorAll('.row-delete-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx, 10);
+      const b = readyBooks[idx];
+      if(!b) return;
+      const ok = window.confirm(`למחוק את "${b.title}"? הפעולה לא ניתנת לביטול.`);
+      if(!ok) return;
+      readyBooks.splice(idx, 1);
+      renderSavedBooksList();
+      if(readyBooks.length === 0 && selectedFiles.length === 0) updateIdleUploadState();
+      toast('הספר נמחק');
+    });
+  });
+}
+
+function renderFileCards(){
+  const kb = f => f.size/1024;
+  const sizeStr = f => (kb(f) > 1024 ? (kb(f)/1024).toFixed(1)+' MB' : Math.round(kb(f))+' KB');
+  fileChipHolder.innerHTML = selectedFiles.map((f, idx) => `
+    <div class="file-card" style="margin-bottom:8px;">
+      <div class="pdf-icon">PDF</div>
+      <div class="finfo">
+        <div class="fname">${escapeHtml(f.name)}</div>
+        <div class="fsize">${sizeStr(f)}</div>
+      </div>
+      <button type="button" class="row-delete-btn" data-idx="${idx}" title="מחיקה">✕</button>
+      <div class="status-pill raw">גולמי</div>
+    </div>`).join('');
+  if(selectedFiles.length > 1){
+    emptySub.textContent = `${selectedFiles.length} קבצים ימוזגו לספר אחד לפי הסדר שהועלו`;
+  }
+  fileChipHolder.querySelectorAll('.row-delete-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx, 10);
+      const f = selectedFiles[idx];
+      if(!f) return;
+      const ok = window.confirm(`להסיר את "${f.name}"?`);
+      if(!ok) return;
+      selectedFiles.splice(idx, 1);
+      if(selectedFiles.length === 0){
+        resetToBlank();
+      } else {
+        renderFileCards();
+      }
+      toast('הקובץ הוסר');
+    });
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ---------- Conversion ---------- */
+async function startConversion(){
+  if(selectedFiles.length === 0) return;
+  dropZone.style.pointerEvents = 'none';
+  progressWrap.classList.add('active');
+  setStatus('הקובץ עולה...');
+  pages = [];
+  try{
+    let totalPagesAllFiles = 0;
+    const pdfDocs = [];
+    for(const file of selectedFiles){
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+      pdfDocs.push(pdf);
+      totalPagesAllFiles += pdf.numPages;
+    }
+    setStatus('יוצר את הספר...');
+    let renderedSoFar = 0;
+    for(const pdf of pdfDocs){
+      const total = pdf.numPages;
+      for(let i=1;i<=total;i++){
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({scale:1.5});
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({canvasContext: ctx, viewport}).promise;
+        pages.push(canvas.toDataURL('image/jpeg', 0.82));
+        renderedSoFar++;
+        const pct = Math.round((renderedSoFar/totalPagesAllFiles)*100);
+        progressFill.style.width = pct + '%';
+        progressLabel.textContent = `ממיר עמוד ${renderedSoFar} מתוך ${totalPagesAllFiles}...`;
+        await new Promise(r=>setTimeout(r,0));
+      }
+    }
+    progressLabel.textContent = 'הושלם!';
+    setStatus('הפרויקט מוכן!');
+    const newEntry = { title: bookTitle, pages: pages.slice(), flipDirection, ogImageUrl: shareOgImageUrl };
+    readyBooks.push(newEntry);
+    currentBookEntry = newEntry;
+    renderSavedBooksList();
+    resetToBlank();
+    progressWrap.classList.remove('active');
+    progressFill.style.width = '0%';
+    setTimeout(openBook, 300);
+  }catch(err){
+    console.error(err);
+    toast('שגיאה בהמרת הקובץ');
+    setStatus('שגיאה ביצירת הספר');
+    dropZone.style.pointerEvents = '';
+    progressWrap.classList.remove('active');
+  }
+}
+
+/* ---------- Book viewer ---------- */
+function openBook(){
+  currentIndex = 0;
+  uploadScreen.classList.remove('active');
+  bookScreen.classList.add('active');
+  backBtn.style.display = 'flex';
+  headerTitle.classList.remove('masthead');
+  headerTitle.textContent = bookTitle;
+  headerSubtitle.textContent = `${pages.length} עמודים`;
+  bookStage.classList.toggle('dir-ltr', flipDirection === 'ltr');
+  renderStage();
+}
+
+backBtn.addEventListener('click', ()=>{
+  bookScreen.classList.remove('active');
+  uploadScreen.classList.add('active');
+  backBtn.style.display = 'none';
+  headerTitle.classList.add('masthead');
+  headerTitle.textContent = 'דַּף נָע';
+  headerSubtitle.textContent = 'הפיכת PDF לספר דפדוף';
+  progressWrap.classList.remove('active');
+  progressFill.style.width='0%';
+  renderSavedBooksList();
+
+  if(selectedFiles.length > 0){
+    setReadyVisuals();
+    renderFileCards();
+  } else {
+    updateIdleUploadState();
+  }
+});
+
+function renderStage(){
+  bookStage.querySelectorAll('.page-layer').forEach(el=>el.remove());
+  const layer = makePageLayer(currentIndex);
+  bookStage.insertBefore(layer, bookStage.firstChild);
+  updateControls();
+}
+
+function makePageLayer(index){
+  const layer = document.createElement('div');
+  layer.className = 'page-layer';
+  const img = document.createElement('img');
+  img.src = pages[index];
+  layer.appendChild(img);
+  return layer;
+}
+
+function updateControls(){
+  pageCounter.textContent = `${currentIndex+1} / ${pages.length}`;
+  document.getElementById('prevBtn').disabled = currentIndex === 0;
+  document.getElementById('nextBtn').disabled = currentIndex === pages.length-1;
+}
+
+function dismissCornerHint(){
+  const hint = bookStage.querySelector('.corner-hint');
+  if(hint) hint.style.display = 'none';
+}
+
+function goNext(){
+  if(isFlipping || currentIndex >= pages.length-1) return;
+  isFlipping = true;
+  const topLayer = bookStage.querySelector('.page-layer');
+  const underLayer = makePageLayer(currentIndex+1);
+  bookStage.insertBefore(underLayer, topLayer);
+  topLayer.classList.add('flip-fwd');
+  setTimeout(()=>{
+    topLayer.remove();
+    currentIndex++;
+    updateControls();
+    dismissCornerHint();
+    isFlipping = false;
+  }, 850);
+}
+function goPrev(){
+  if(isFlipping || currentIndex <= 0) return;
+  isFlipping = true;
+  const currentLayer = bookStage.querySelector('.page-layer');
+  const returningLayer = makePageLayer(currentIndex-1);
+  returningLayer.classList.add('flip-return');
+  bookStage.appendChild(returningLayer);
+  setTimeout(()=>{
+    currentLayer.remove();
+    currentIndex--;
+    updateControls();
+    dismissCornerHint();
+    isFlipping = false;
+  }, 850);
+}
+
+
+document.getElementById('nextBtn').addEventListener('click', goNext);
+document.getElementById('prevBtn').addEventListener('click', goPrev);
+
+/* ---------- Drag-to-flip (page follows the finger) ---------- */
+const dragZone = document.getElementById('dragZone');
+let dragActive = false;
+let dragStartX = 0, dragCurrentX = 0;
+let dragDirection = null; // 'fwd' | 'back' | 'none'
+let dragTopLayer = null, dragUnderLayer = null;
+let dragStageWidth = 300;
+let dragRafPending = false;
+let dragLockSign = 1;
+
+function isInCorner(clientX, clientY){
+  const rect = bookStage.getBoundingClientRect();
+  const top = rect.top + rect.height * 0.12;
+  return clientY >= top;
+}
+
+function getDragProgress(){
+  const deltaX = dragCurrentX - dragStartX;
+  const signedDelta = Math.max(0, dragLockSign * deltaX);
+  return Math.min(signedDelta / dragStageWidth, 1);
+}
+
+function applyDragFrame(){
+  dragRafPending = false;
+  if(!dragActive || dragDirection === null || dragDirection === 'none' || dragDirection === 'blocked') return;
+  const progress = getDragProgress();
+  const shade = Math.sin(Math.min(progress, 1) * Math.PI) * 0.8;
+  const hingeSign = flipDirection === 'rtl' ? 1 : -1;
+  if(dragDirection === 'fwd'){
+    dragTopLayer.style.transform = `rotateY(${hingeSign * progress * 115}deg)`;
+    dragTopLayer.style.setProperty('--shadeOpacity', shade.toFixed(3));
+  } else {
+    dragUnderLayer.style.transform = `rotateY(${hingeSign * 115 * (1 - progress)}deg)`;
+    dragUnderLayer.style.setProperty('--shadeOpacity', shade.toFixed(3));
+  }
+}
+
+dragZone.addEventListener('pointerdown', e=>{
+  if(isFlipping) return;
+  dragActive = true;
+  dragStartX = e.clientX; dragCurrentX = e.clientX;
+  dragDirection = isInCorner(e.clientX, e.clientY) ? null : 'blocked';
+  dragTopLayer = bookStage.querySelector('.page-layer');
+  dragUnderLayer = null;
+  dragStageWidth = bookStage.clientWidth || 300;
+  try{ dragZone.setPointerCapture(e.pointerId); }catch(err){}
+});
+
+dragZone.addEventListener('pointermove', e=>{
+  if(!dragActive || dragDirection === 'blocked') return;
+  dragCurrentX = e.clientX;
+  const deltaX = dragCurrentX - dragStartX;
+
+  if(dragDirection === null){
+    if(Math.abs(deltaX) < 3) return;
+    dragLockSign = deltaX < 0 ? -1 : 1;
+    const wantsForward = (flipDirection === 'rtl') ? deltaX > 0 : deltaX < 0;
+    if(wantsForward){
+      if(currentIndex >= pages.length - 1){ dragDirection = 'none'; return; }
+      dragDirection = 'fwd';
+      dragUnderLayer = makePageLayer(currentIndex + 1);
+      bookStage.insertBefore(dragUnderLayer, dragTopLayer);
+    } else {
+      if(currentIndex <= 0){ dragDirection = 'none'; return; }
+      dragDirection = 'back';
+      dragUnderLayer = makePageLayer(currentIndex - 1);
+      dragUnderLayer.style.transform = `rotateY(${(flipDirection === 'rtl' ? 1 : -1) * 115}deg)`;
+      bookStage.appendChild(dragUnderLayer);
+    }
+  }
+  if(dragDirection === 'none') return;
+
+  e.preventDefault();
+  if(!dragRafPending){
+    dragRafPending = true;
+    requestAnimationFrame(applyDragFrame);
+  }
+});
+
+function endDrag(e){
+  if(!dragActive) return;
+  dragActive = false;
+
+  if(dragDirection === 'blocked' || dragDirection === null || dragDirection === 'none'){
+    const deltaX = dragCurrentX - dragStartX;
+    if(Math.abs(deltaX) < 4){
+      const rect = bookStage.getBoundingClientRect();
+      const tappedRight = (dragStartX - rect.left) > rect.width / 2;
+      if(flipDirection === 'rtl'){ tappedRight ? goPrev() : goNext(); }
+      else { tappedRight ? goNext() : goPrev(); }
+    }
+    dragTopLayer = null; dragUnderLayer = null;
+    return;
+  }
+
+  const progress = getDragProgress();
+  const direction = dragDirection;
+  const topLayer = dragTopLayer;
+  const underLayer = dragUnderLayer;
+  const hingeSign = flipDirection === 'rtl' ? 1 : -1;
+
+  isFlipping = true;
+
+  if(direction === 'fwd'){
+    topLayer.style.transition = 'transform .4s cubic-bezier(.4,0,.2,1)';
+    if(progress > 0.18){
+      requestAnimationFrame(()=>{ topLayer.style.transform = `rotateY(${hingeSign * 115}deg)`; });
+      setTimeout(()=>{
+        topLayer.remove();
+        currentIndex++;
+        updateControls();
+        dismissCornerHint();
+        isFlipping = false;
+      }, 330);
+    } else {
+      requestAnimationFrame(()=>{ topLayer.style.transform = 'rotateY(0deg)'; topLayer.style.setProperty('--shadeOpacity','0'); });
+      setTimeout(()=>{
+        underLayer.remove();
+        topLayer.style.transition = '';
+        isFlipping = false;
+      }, 330);
+    }
+  } else {
+    underLayer.style.transition = 'transform .4s cubic-bezier(.4,0,.2,1)';
+    if(progress > 0.18){
+      requestAnimationFrame(()=>{ underLayer.style.transform = 'rotateY(0deg)'; });
+      setTimeout(()=>{
+        topLayer.remove();
+        currentIndex--;
+        updateControls();
+        dismissCornerHint();
+        isFlipping = false;
+      }, 330);
+    } else {
+      requestAnimationFrame(()=>{ underLayer.style.transform = `rotateY(${hingeSign * 115}deg)`; underLayer.style.setProperty('--shadeOpacity','0'); });
+      setTimeout(()=>{
+        underLayer.remove();
+        isFlipping = false;
+      }, 330);
+    }
+  }
+  dragDirection = null; dragTopLayer = null; dragUnderLayer = null;
+}
+
+dragZone.addEventListener('pointerup', endDrag);
+dragZone.addEventListener('pointercancel', endDrag);
+
+document.addEventListener('keydown', e=>{
+  if(!bookScreen.classList.contains('active')) return;
+  if(e.key === 'ArrowLeft') flipDirection === 'ltr' ? goPrev() : goNext();
+  if(e.key === 'ArrowRight') flipDirection === 'ltr' ? goNext() : goPrev();
+});
+
+/* ---------- Share / Embed ---------- */
+function buildStandaloneHtml(bgColor, confettiTypes, titleColor, customEmojis, ogImageUrl){
+  const safeTitle = bookTitle.replace(/</g,'&lt;');
+  const pagesJson = JSON.stringify(pages);
+  const isLTR = flipDirection === 'ltr';
+  const originSide = isLTR ? 'left' : 'right';
+  const shadeDir = isLTR ? 'to right' : 'to left';
+  const cornerSide = isLTR ? 'right' : 'left';
+  const bg = bgColor || '#0B0C10';
+  const confettiList = JSON.stringify(Array.isArray(confettiTypes) ? confettiTypes : []);
+  const customEmojiList = JSON.stringify(Array.isArray(customEmojis) ? customEmojis : []);
+  const titleClr = titleColor || '#F5F6F8';
+  const safeOgImage = (ogImageUrl || '').replace(/"/g, '&quot;');
+  const ogTags = safeOgImage
+    ? `<meta property="og:title" content="${safeTitle}">
+<meta property="og:description" content="ספר דיגיטלי לדפדוף — לחצו לפתיחה">
+<meta property="og:image" content="${safeOgImage}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${safeTitle}">
+<meta name="twitter:image" content="${safeOgImage}">`
+    : `<meta property="og:title" content="${safeTitle}">
+<meta property="og:description" content="ספר דיגיטלי לדפדוף — לחצו לפתיחה">
+<meta property="og:type" content="website">`;
+  return `<!DOCTYPE html>
+<html lang="he" dir="rtl"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${safeTitle}</title>
+${ogTags}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100vh;min-height:100dvh;background:${bg};font-family:"Heebo",Arial,sans-serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 0;box-sizing:border-box;overflow-x:hidden;}
+  .confetti-layer{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;}
+  .confetti-piece{position:absolute;top:-16%;will-change:transform, opacity;}
+  @keyframes confettiFall{
+    0%{transform:translateY(-6vh) translateX(0) rotate(0deg); opacity:0;}
+    12%{opacity:var(--peakOpacity, 0.8);}
+    50%{transform:translateY(50vh) translateX(18px) rotate(180deg); opacity:var(--peakOpacity, 0.8);}
+    88%{opacity:var(--peakOpacity, 0.8);}
+    100%{transform:translateY(112vh) translateX(-18px) rotate(360deg); opacity:0;}
+  }
+  .book-title-display{
+    font-family:"Heebo",Arial,sans-serif;font-weight:900;letter-spacing:-.3px;
+    font-size:clamp(28px, 8vw, 46px);
+    color:${titleClr};background:transparent;
+    text-align:center;padding:0 18px;margin-bottom:16px;flex-shrink:0;
+  }
+  .stage{perspective:1800px;position:relative;z-index:3;flex-shrink:0;padding:14px;}
+  .page-layer{position:absolute;inset:14px;background:#ffffff;border-radius:16px;overflow:hidden;
+    transform-style:preserve-3d;transform-origin:${originSide} center;backface-visibility:hidden;will-change:transform;
+    box-shadow:-14px 16px 40px rgba(0,0,0,0.35), 0 6px 18px rgba(0,0,0,0.22);}
+  .page-layer img{width:100%;height:100%;object-fit:contain;display:block;background:#fff;}
+  .page-layer::after{content:"";position:absolute;top:0;bottom:0;${originSide}:0;width:28px;
+    background:linear-gradient(${shadeDir}, rgba(0,0,0,0.10), transparent);pointer-events:none;}
+  .page-layer::before{content:"";position:absolute;inset:0;z-index:3;
+    background:linear-gradient(${shadeDir}, rgba(0,0,0,0.5), rgba(0,0,0,0.05) 55%, transparent 80%);
+    opacity:var(--shadeOpacity, 0);pointer-events:none;}
+  .drag-zone{position:absolute;inset:14px;z-index:10;cursor:grab;touch-action:none;}
+  .drag-zone:active{cursor:grabbing;}
+  .corner-hint{position:absolute;z-index:11;pointer-events:none;bottom:10px;${cornerSide}:10px;
+    width:64px;height:64px;${isLTR ? 'transform:scaleX(-1);' : ''}}
+  .corner-hint .spark{position:absolute;border-radius:50%;background:#8AB0F5;
+    box-shadow:0 0 6px 2px rgba(91,141,239,0.45);opacity:0;}
+  .corner-hint .s1{width:7px;height:7px;bottom:8px;left:8px;animation:sparkle 2.4s ease-in-out infinite;}
+  .corner-hint .s2{width:5px;height:5px;bottom:20px;left:20px;animation:sparkle 2.4s ease-in-out infinite .35s;}
+  .corner-hint .s3{width:4px;height:4px;bottom:32px;left:32px;animation:sparkle 2.4s ease-in-out infinite .7s;}
+  .corner-hint .s4{width:3px;height:3px;bottom:44px;left:44px;animation:sparkle 2.4s ease-in-out infinite 1.05s;}
+  @keyframes sparkle{
+    0%{opacity:0;transform:scale(.3) translate(3px,3px);}
+    35%{opacity:1;transform:scale(1) translate(0,0);}
+    70%{opacity:.7;transform:scale(.85) translate(-2px,-2px);}
+    100%{opacity:0;transform:scale(.3) translate(-4px,-4px);}
+  }
+  .controls{display:flex;align-items:center;gap:14px;margin-top:16px;flex-shrink:0;}
+  .nav{width:34px;height:34px;border-radius:50%;background:transparent;border:none;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+  .nav .dot{width:9px;height:9px;border-radius:50%;background:#5B8DEF;
+    box-shadow:0 0 8px 2px rgba(91,141,239,0.45), 0 0 2px 0 #8AB0F5;}
+  .nav:disabled{cursor:not-allowed;}
+  .nav:disabled .dot{opacity:.3;box-shadow:none;}
+  .counter{background:rgba(29,31,39,0.55);color:#F5F6F8;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);
+    font-size:12.5px;font-weight:600;min-width:70px;text-align:center;backdrop-filter:blur(4px);}
+</style></head><body>
+<div class="confetti-layer" id="confettiLayer"></div>
+<div class="book-title-display">${safeTitle}</div>
+<div class="stage" id="s"><div class="drag-zone" id="dz"></div>
+  <div class="corner-hint"><span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span><span class="spark s4"></span></div>
+</div>
+<div class="controls">
+  <button class="nav" id="p"><span class="dot"></span></button>
+  <div class="counter" id="c">1/1</div>
+  <button class="nav" id="n"><span class="dot"></span></button>
+</div>
+<script>
+const confettiTypes = ${confettiList};
+const customConfettiEmojis = ${customEmojiList};
+const pages = ${pagesJson};
+const isLTR = ${isLTR};
+let i=0, flipping=false;
+const stage=document.getElementById('s'), counter=document.getElementById('c'), dz=document.getElementById('dz');
+const pBtn=document.getElementById('p'), nBtn=document.getElementById('n');
+
+function fitStage(){
+  const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  const vw = (window.visualViewport ? window.visualViewport.width : window.innerWidth);
+  const controlsEl = document.querySelector('.controls');
+  const controlsH = controlsEl ? controlsEl.offsetHeight : 50;
+  const availH = Math.max(200, vh - controlsH - 20);
+  const availW = Math.max(200, vw - 8);
+  let h = availH;
+  let w = h * 0.72;
+  if(w > availW){ w = availW; h = w / 0.72; }
+  stage.style.width = w + 'px';
+  stage.style.height = h + 'px';
+}
+window.addEventListener('resize', fitStage);
+window.addEventListener('orientationchange', ()=>setTimeout(fitStage, 200));
+if(window.visualViewport){ window.visualViewport.addEventListener('resize', fitStage); }
+setTimeout(()=>{ try{ window.scrollTo(0,1); }catch(e){} }, 300);
+
+function makeLayer(idx){
+  const layer=document.createElement('div'); layer.className='page-layer';
+  const img=document.createElement('img'); img.src=pages[idx];
+  layer.appendChild(img);
+  return layer;
+}
+function render(){
+  stage.querySelectorAll('.page-layer').forEach(el=>el.remove());
+  stage.insertBefore(makeLayer(i), stage.firstChild);
+  stage.appendChild(dz);
+  updateControls();
+  fitStage();
+}
+function updateControls(){
+  counter.textContent=(i+1)+'/'+pages.length;
+  pBtn.disabled=i===0; nBtn.disabled=i===pages.length-1;
+}
+function dismissCornerHint(){
+  const hint = stage.querySelector('.corner-hint');
+  if(hint) hint.style.display='none';
+}
+function next(){ if(flipping||i>=pages.length-1)return; flipping=true;
+  const top=stage.querySelector('.page-layer');
+  const under=makeLayer(i+1); stage.insertBefore(under, top);
+  const hingeSign = isLTR ? -1 : 1;
+  top.style.transition='transform 1s cubic-bezier(.4,0,.2,1)';
+  requestAnimationFrame(()=>{top.style.transform=\`rotateY(\${hingeSign*115}deg)\`;});
+  setTimeout(()=>{top.remove();i++;updateControls();dismissCornerHint();flipping=false;},850); }
+function prev(){ if(flipping||i<=0)return; flipping=true;
+  const current=stage.querySelector('.page-layer');
+  const returning=makeLayer(i-1);
+  const hingeSign = isLTR ? -1 : 1;
+  returning.style.transform=\`rotateY(\${hingeSign*115}deg)\`;
+  returning.style.transition='transform 1s cubic-bezier(.4,0,.2,1)';
+  stage.appendChild(returning);
+  requestAnimationFrame(()=>{returning.style.transform='rotateY(0deg)';});
+  setTimeout(()=>{current.remove();i--;updateControls();dismissCornerHint();flipping=false;},850); }
+nBtn.onclick=next; pBtn.onclick=prev;
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft') isLTR ? prev() : next();
+  if(e.key==='ArrowRight') isLTR ? next() : prev();
+});
+
+/* drag-to-flip */
+let dragActive=false, startX=0, curX=0, dir=null, topL=null, underL=null;
+let dragW=300, rafPending=false, lockSign=1;
+function isInCorner(clientX, clientY){
+  const rect = stage.getBoundingClientRect();
+  const top = rect.top + rect.height * 0.12;
+  return clientY >= top;
+}
+function getDragProgress(){
+  const dx=curX-startX;
+  const signedDelta=Math.max(0, lockSign*dx);
+  return Math.min(signedDelta/dragW,1);
+}
+function applyDragFrame(){
+  rafPending=false;
+  if(!dragActive || dir===null || dir==='none' || dir==='blocked') return;
+  const progress=getDragProgress();
+  const shade=Math.sin(Math.min(progress,1)*Math.PI)*0.8;
+  const hingeSign = isLTR ? -1 : 1;
+  if(dir==='fwd'){
+    topL.style.transform=\`rotateY(\${hingeSign*progress*115}deg)\`;
+    topL.style.setProperty('--shadeOpacity', shade.toFixed(3));
+  } else {
+    underL.style.transform=\`rotateY(\${hingeSign*115*(1-progress)}deg)\`;
+    underL.style.setProperty('--shadeOpacity', shade.toFixed(3));
+  }
+}
+dz.addEventListener('pointerdown', e=>{
+  if(flipping) return;
+  dragActive=true; startX=e.clientX; curX=e.clientX;
+  dir = isInCorner(e.clientX, e.clientY) ? null : 'blocked';
+  topL=stage.querySelector('.page-layer'); underL=null;
+  dragW=stage.clientWidth||300;
+  try{ dz.setPointerCapture(e.pointerId); }catch(err){}
+});
+dz.addEventListener('pointermove', e=>{
+  if(!dragActive || dir==='blocked') return;
+  curX=e.clientX;
+  const dx=curX-startX;
+  if(dir===null){
+    if(Math.abs(dx)<3) return;
+    lockSign = dx<0 ? -1 : 1;
+    const wantsFwd = isLTR ? dx<0 : dx>0;
+    if(wantsFwd){
+      if(i>=pages.length-1){dir='none';return;}
+      dir='fwd'; underL=makeLayer(i+1);
+      stage.insertBefore(underL, topL);
+    } else {
+      if(i<=0){dir='none';return;}
+      dir='back'; underL=makeLayer(i-1);
+      underL.style.transform = \`rotateY(\${(isLTR?-1:1)*115}deg)\`;
+      stage.appendChild(underL);
+    }
+  }
+  if(dir==='none') return;
+  e.preventDefault();
+  if(!rafPending){ rafPending=true; requestAnimationFrame(applyDragFrame); }
+});
+function endDrag(){
+  if(!dragActive) return;
+  dragActive=false;
+  if(dir==='blocked'||dir===null||dir==='none'){
+    const dx=curX-startX;
+    if(Math.abs(dx)<4){
+      const rect=stage.getBoundingClientRect();
+      const tappedRight=(startX-rect.left)>rect.width/2;
+      if(isLTR){ tappedRight?next():prev(); } else { tappedRight?prev():next(); }
+    }
+    topL=null; underL=null; return;
+  }
+  const progress=getDragProgress();
+  const direction=dir, top=topL, under=underL;
+  const hingeSign = isLTR ? -1 : 1;
+  flipping=true;
+  if(direction==='fwd'){
+    top.style.transition='transform .4s cubic-bezier(.4,0,.2,1)';
+    if(progress>0.18){
+      requestAnimationFrame(()=>{top.style.transform=\`rotateY(\${hingeSign*115}deg)\`;});
+      setTimeout(()=>{top.remove(); i++; updateControls(); dismissCornerHint(); flipping=false;},330);
+    } else {
+      requestAnimationFrame(()=>{top.style.transform='rotateY(0deg)'; top.style.setProperty('--shadeOpacity','0');});
+      setTimeout(()=>{under.remove(); top.style.transition=''; flipping=false;},330);
+    }
+  } else {
+    under.style.transition='transform .4s cubic-bezier(.4,0,.2,1)';
+    if(progress>0.18){
+      requestAnimationFrame(()=>{ under.style.transform='rotateY(0deg)'; });
+      setTimeout(()=>{top.remove(); i--; updateControls(); dismissCornerHint(); flipping=false;},330);
+    } else {
+      requestAnimationFrame(()=>{ under.style.transform=\`rotateY(\${hingeSign*115}deg)\`; under.style.setProperty('--shadeOpacity','0'); });
+      setTimeout(()=>{under.remove(); flipping=false;},330);
+    }
+  }
+  dir=null; topL=null; underL=null;
+}
+dz.addEventListener('pointerup', endDrag);
+dz.addEventListener('pointercancel', endDrag);
+
+function initConfetti(){
+  const hasCustom = customConfettiEmojis && customConfettiEmojis.length > 0;
+  if((!confettiTypes || confettiTypes.length === 0) && !hasCustom) return;
+  const shapesMap = {
+    hearts: ['💗','💕','❤️','💖'],
+    stars: ['⭐','🌟'],
+    sparkles: ['✨','💫'],
+    balloons: ['🎈'],
+    flowers: ['🌸','🌺','🌷','🌼'],
+    butterflies: ['🦋'],
+    snow: ['❄️','❅','❆'],
+    party: ['🎊','🎉'],
+    rainbow: ['🌈'],
+    mixed: ['💗','⭐','✨','🎉','🦋','💫','❤️','🌟','🎈','🌸','🎊','🌈','❄️']
+  };
+  let shapes = [];
+  (confettiTypes || []).forEach(t=>{ if(shapesMap[t]) shapes = shapes.concat(shapesMap[t]); });
+  if(hasCustom) shapes = shapes.concat(customConfettiEmojis);
+  if(shapes.length === 0) return;
+  const layer = document.getElementById('confettiLayer');
+  const typeCount = (confettiTypes ? confettiTypes.length : 0) + (hasCustom ? 1 : 0);
+  const count = Math.min(48, 22 + typeCount*5);
+  for(let k=0;k<count;k++){
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.textContent = shapes[Math.floor(Math.random()*shapes.length)];
+    const left = Math.random()*100;
+    const duration = 30 + Math.random()*24;
+    const delay = -Math.random()*duration;
+    const size = 16 + Math.random()*16;
+    el.style.left = left+'%';
+    el.style.fontSize = size+'px';
+    el.style.setProperty('--peakOpacity', (0.65 + Math.random()*0.35).toFixed(2));
+    el.style.animation = 'confettiFall '+duration+'s linear '+delay+'s infinite';
+    layer.appendChild(el);
+  }
+}
+initConfetti();
+
+render();
+<\/script>
+</body></html>`;
+}
+
+function downloadStandalone(){
+  const imgUrl = (currentBookEntry && currentBookEntry.ogImageUrl) ? currentBookEntry.ogImageUrl : shareOgImageUrl;
+  const html = buildStandaloneHtml(shareBgColor, shareConfettiTypes, shareTitleColor, customConfettiEmojis, imgUrl);
+  return new Blob([html], {type:'text/html'});
+}
+
+/* ---------- Share modal ---------- */
+const shareModal      = document.getElementById('shareModal');
+const shareTitleInput = document.getElementById('shareTitleInput');
+const shareUrlInput = document.getElementById('shareUrlInput');
+const shareOgImageInput = document.getElementById('shareOgImageInput');
+shareUrlInput.addEventListener('input', ()=>{
+  const val = shareUrlInput.value.trim();
+  if(currentBookEntry) currentBookEntry.hostedUrl = val;
+});
+shareOgImageInput.addEventListener('input', ()=>{
+  const val = shareOgImageInput.value.trim();
+  shareOgImageUrl = val;
+  if(currentBookEntry) currentBookEntry.ogImageUrl = val;
+});
+
+document.querySelectorAll('#titleSwatchRow .swatch').forEach(sw=>{
+  sw.addEventListener('click', ()=>{
+    document.querySelectorAll('#titleSwatchRow .swatch').forEach(s=>s.classList.remove('active'));
+    sw.classList.add('active');
+    shareTitleColor = sw.dataset.color;
+  });
+});
+document.querySelectorAll('#swatchRow .swatch').forEach(sw=>{
+  sw.addEventListener('click', ()=>{
+    document.querySelectorAll('#swatchRow .swatch').forEach(s=>s.classList.remove('active'));
+    sw.classList.add('active');
+    shareBgColor = sw.dataset.color;
+  });
+});
+document.querySelectorAll('#confettiRow .pill-option').forEach(p=>{
+  p.addEventListener('click', ()=>{
+    const val = p.dataset.confetti;
+    const noneBtn = document.querySelector('#confettiRow .pill-option[data-confetti="none"]');
+    if(val === 'none'){
+      shareConfettiTypes = [];
+      customConfettiEmojis = [];
+      document.querySelectorAll('#confettiRow .pill-option').forEach(o=>o.classList.remove('active'));
+      document.querySelectorAll('#emojiGrid .emoji-tile').forEach(t=>t.classList.remove('active'));
+      noneBtn.classList.add('active');
+      return;
+    }
+    const idx = shareConfettiTypes.indexOf(val);
+    if(idx === -1){ shareConfettiTypes.push(val); p.classList.add('active'); }
+    else { shareConfettiTypes.splice(idx, 1); p.classList.remove('active'); }
+    noneBtn.classList.toggle('active', shareConfettiTypes.length === 0 && customConfettiEmojis.length === 0);
+  });
+});
+
+/* ---------- Custom emoji picker for confetti ---------- */
+const EMOJI_CHOICES = [
+  '😀','😂','😍','🥳','😎','🤩','🥰','😇','🤔','😴','🥹','😜',
+  '🐶','🐱','🐻','🦁','🐸','🦄','🐬','🐝','🐢','🦊','🐼','🐧',
+  '🍎','🍕','🍔','🍦','🍩','🍓','🍉','🍫','🎂','🍬','🍭','🥑',
+  '⚽','🏀','🎮','🎸','🎨','🎯','🎲','🎳','🚀','⛵','🎁','🏆',
+  '🌸','🌻','🌈','☀️','🌙','⭐','❄️','🔥','💧','🌍','🍀','🌵',
+  '❤️','💛','💚','💙','💜','🖤','🤍','💯','✨','🎉','👑','💎'
+];
+const emojiGrid = document.getElementById('emojiGrid');
+const emojiPickerToggle = document.getElementById('emojiPickerToggle');
+emojiGrid.innerHTML = EMOJI_CHOICES.map(e => `<button type="button" class="emoji-tile" data-emoji="${e}">${e}</button>`).join('');
+emojiPickerToggle.addEventListener('click', ()=>{
+  const isOpen = emojiGrid.style.display === 'grid';
+  emojiGrid.style.display = isOpen ? 'none' : 'grid';
+  emojiPickerToggle.textContent = isOpen ? '➕ בחירת אימוג׳י משלי' : '➖ סגירת רשימת האימוג׳ים';
+});
+emojiGrid.querySelectorAll('.emoji-tile').forEach(tile=>{
+  tile.addEventListener('click', ()=>{
+    const emoji = tile.dataset.emoji;
+    const idx = customConfettiEmojis.indexOf(emoji);
+    const noneBtn = document.querySelector('#confettiRow .pill-option[data-confetti="none"]');
+    if(idx === -1){ customConfettiEmojis.push(emoji); tile.classList.add('active'); }
+    else { customConfettiEmojis.splice(idx, 1); tile.classList.remove('active'); }
+    noneBtn.classList.toggle('active', shareConfettiTypes.length === 0 && customConfettiEmojis.length === 0);
+  });
+});
+
+let pendingShareAction = 'share'; // 'share' | 'embed' | 'download'
+
+function openShareModal(action){
+  pendingShareAction = action;
+  shareTitleInput.value = bookTitle;
+  shareUrlInput.value = (currentBookEntry && currentBookEntry.hostedUrl) ? currentBookEntry.hostedUrl : '';
+  shareOgImageInput.value = (currentBookEntry && currentBookEntry.ogImageUrl) ? currentBookEntry.ogImageUrl : shareOgImageUrl;
+  shareModal.classList.add('active');
+}
+
+document.getElementById('shareBtn').addEventListener('click', ()=> openShareModal('share'));
+document.getElementById('htmlBtn').addEventListener('click', ()=> openShareModal('embed'));
+document.getElementById('downloadBtn').addEventListener('click', ()=> openShareModal('download'));
+
+document.getElementById('shareCancelBtn').addEventListener('click', ()=>{
+  shareModal.classList.remove('active');
+});
+shareModal.addEventListener('click', e=>{
+  if(e.target.id === 'shareModal') shareModal.classList.remove('active');
+});
+
+document.getElementById('shareConfirmBtn').addEventListener('click', async ()=>{
+  const chosenTitle = shareTitleInput.value.trim();
+  if(chosenTitle){
+    bookTitle = chosenTitle;
+    headerTitle.textContent = bookTitle;
+  }
+  const hostedUrl = shareUrlInput.value.trim();
+  shareModal.classList.remove('active');
+
+  if(pendingShareAction === 'share' && hostedUrl){
+    if(navigator.share){
+      try{
+        await navigator.share({ title: bookTitle, text: 'ספר דיגיטלי: ' + bookTitle, url: hostedUrl });
+        return;
+      }catch(err){ /* cancelled, fall through to clipboard copy below */ }
+    }
+    try{
+      await navigator.clipboard.writeText(hostedUrl);
+      toast('הקישור הועתק — אפשר להדביק אותו בוואטסאפ');
+    }catch(err){
+      toast('הקישור: ' + hostedUrl);
+    }
+    return;
+  }
+
+  const blob = downloadStandalone();
+  const fileName = bookTitle + '.html';
+
+  if(pendingShareAction === 'share'){
+    const file = new File([blob], fileName, {type:'text/html'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({files:[file], title: bookTitle, text:'ספר דיגיטלי: '+bookTitle});
+        return;
+      }catch(err){ /* cancelled or unsupported, fallback below */ }
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+
+  if(pendingShareAction === 'embed'){
+    toast('הקובץ הורד — ניתן להעלות אותו לאתר ולהטמיע ב-iframe');
+  } else if(pendingShareAction === 'download'){
+    toast('הקובץ הורד');
+  } else {
+    toast('הקובץ הורד — ניתן לשתף אותו ידנית (הוסיפו קישור למעלה כדי לשתף קישור במקום)');
+  }
+});
+</script>
+</body>
+</html>
