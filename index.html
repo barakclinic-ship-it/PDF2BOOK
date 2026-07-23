@@ -345,11 +345,16 @@
   .modal-box h3{margin:0 0 14px;font-size:15px;font-weight:800;color:var(--text);}
   .modal-field{margin-bottom:16px;}
   .modal-field label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;}
-  .modal-field input[type="text"]{
+  .modal-field input[type="text"], .modal-field input[type="password"]{
     width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;
     padding:8px 10px;font-size:13.5px;color:var(--text);font-family:"Heebo",sans-serif;
   }
   .field-hint{font-size:11px;color:var(--text-muted);margin-top:5px;line-height:1.5;}
+  .add-more-link{
+    background:transparent;border:none;color:var(--blue-light);
+    font-size:11px;text-decoration:underline;cursor:pointer;display:block;
+    font-family:"Heebo",sans-serif;
+  }
   .swatch-row{display:flex;flex-wrap:wrap;gap:8px;}
   .swatch{
     width:30px;height:30px;border-radius:50%;cursor:pointer;
@@ -491,6 +496,18 @@
         <label>קישור לספר (אחרי העלאה ל-GitHub Pages או אחסון אחר)</label>
         <input type="text" id="shareUrlInput" placeholder="https://username.github.io/repo/book.html">
         <div class="field-hint">אם ממלאים כתובת כאן, "שלח לחבר" ישתף את הקישור עצמו (עם תצוגה מקדימה) — לא את הקובץ.</div>
+        <button type="button" class="btn-flat" id="ghPublishToggle" style="width:100%;margin-top:8px;">🚀 פרסום אוטומטי לגיטהאב</button>
+        <div id="ghPublishPanel" style="display:none;margin-top:10px;">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">שם משתמש גיטהאב</label>
+          <input type="text" id="ghUsernameInput" value="barakclinic-ship-it" style="margin-bottom:8px;">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">שם הריפו</label>
+          <input type="text" id="ghRepoInput" value="PDF2BOOK" style="margin-bottom:8px;">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">טוקן גישה (נשמר רק בזיכרון הדפדפן, לא בקובץ)</label>
+          <input type="password" id="ghTokenInput" style="margin-bottom:4px;">
+          <button type="button" class="add-more-link" id="ghForgetTokenBtn" style="margin-bottom:8px;padding:0;">שכחת ממני — מחיקת הטוקן השמור</button>
+          <button type="button" class="primary-btn" id="ghPublishBtn" style="width:100%;">פרסום עכשיו</button>
+          <div class="field-hint" id="ghPublishStatus"></div>
+        </div>
       </div>
       <div class="modal-field">
         <label>תמונה לתצוגה מקדימה בקישור (אופציונלי)</label>
@@ -1199,7 +1216,7 @@ ${ogTags}
 <style>
   *{box-sizing:border-box;}
   html,body{margin:0;min-height:100vh;min-height:100dvh;background:${bg};font-family:"Heebo",Arial,sans-serif;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 0;box-sizing:border-box;overflow-x:hidden;}
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 0;box-sizing:border-box;overflow-x:hidden;}
   .confetti-layer{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;}
   .confetti-piece{position:absolute;top:-16%;will-change:transform, opacity;}
   @keyframes confettiFall{
@@ -1213,10 +1230,10 @@ ${ogTags}
     font-family:"Heebo",Arial,sans-serif;font-weight:900;letter-spacing:-.3px;
     font-size:clamp(28px, 8vw, 46px);
     color:${titleClr};background:transparent;
-    text-align:center;padding:0 18px;margin-bottom:16px;flex-shrink:0;
+    text-align:center;padding:0 18px;margin-bottom:10px;flex-shrink:0;
   }
-  .stage{perspective:1800px;position:relative;z-index:3;flex-shrink:0;padding:14px;}
-  .page-layer{position:absolute;inset:14px;background:#ffffff;border-radius:16px;overflow:hidden;
+  .stage{perspective:1800px;position:relative;z-index:3;flex-shrink:0;padding:6px;}
+  .page-layer{position:absolute;inset:6px;background:#ffffff;border-radius:14px;overflow:hidden;
     transform-style:preserve-3d;transform-origin:${originSide} center;backface-visibility:hidden;will-change:transform;
     box-shadow:-14px 16px 40px rgba(0,0,0,0.35), 0 6px 18px rgba(0,0,0,0.22);}
   .page-layer img{width:100%;height:100%;object-fit:contain;display:block;background:#fff;}
@@ -1225,7 +1242,7 @@ ${ogTags}
   .page-layer::before{content:"";position:absolute;inset:0;z-index:3;
     background:linear-gradient(${shadeDir}, rgba(0,0,0,0.5), rgba(0,0,0,0.05) 55%, transparent 80%);
     opacity:var(--shadeOpacity, 0);pointer-events:none;}
-  .drag-zone{position:absolute;inset:14px;z-index:10;cursor:grab;touch-action:none;}
+  .drag-zone{position:absolute;inset:6px;z-index:10;cursor:grab;touch-action:none;}
   .drag-zone:active{cursor:grabbing;}
   .corner-hint{position:absolute;z-index:11;pointer-events:none;bottom:10px;${cornerSide}:10px;
     width:64px;height:64px;${isLTR ? 'transform:scaleX(-1);' : ''}}
@@ -1241,7 +1258,7 @@ ${ogTags}
     70%{opacity:.7;transform:scale(.85) translate(-2px,-2px);}
     100%{opacity:0;transform:scale(.3) translate(-4px,-4px);}
   }
-  .controls{display:flex;align-items:center;gap:14px;margin-top:16px;flex-shrink:0;}
+  .controls{display:flex;align-items:center;gap:14px;margin-top:10px;flex-shrink:0;}
   .nav{width:34px;height:34px;border-radius:50%;background:transparent;border:none;
     display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
   .nav .dot{width:9px;height:9px;border-radius:50%;background:#5B8DEF;
@@ -1274,9 +1291,11 @@ function fitStage(){
   const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
   const vw = (window.visualViewport ? window.visualViewport.width : window.innerWidth);
   const controlsEl = document.querySelector('.controls');
+  const titleEl = document.querySelector('.book-title-display');
   const controlsH = controlsEl ? controlsEl.offsetHeight : 50;
-  const availH = Math.max(200, vh - controlsH - 20);
-  const availW = Math.max(200, vw - 8);
+  const titleH = titleEl ? titleEl.offsetHeight : 0;
+  const availH = Math.max(200, vh - controlsH - titleH - 10);
+  const availW = Math.max(200, vw - 2);
   let h = availH;
   let w = h * 0.72;
   if(w > availW){ w = availW; h = w / 0.72; }
@@ -1492,6 +1511,97 @@ shareOgImageInput.addEventListener('input', ()=>{
   const val = shareOgImageInput.value.trim();
   shareOgImageUrl = val;
   if(currentBookEntry) currentBookEntry.ogImageUrl = val;
+});
+
+/* ---------- Auto-publish to GitHub ---------- */
+const ghPublishToggle = document.getElementById('ghPublishToggle');
+const ghPublishPanel  = document.getElementById('ghPublishPanel');
+const ghUsernameInput = document.getElementById('ghUsernameInput');
+const ghRepoInput     = document.getElementById('ghRepoInput');
+const ghTokenInput    = document.getElementById('ghTokenInput');
+const ghPublishBtn    = document.getElementById('ghPublishBtn');
+const ghPublishStatus = document.getElementById('ghPublishStatus');
+
+try{
+  const savedToken = sessionStorage.getItem('df_na_gh_token');
+  if(savedToken) ghTokenInput.value = savedToken;
+  const savedUser = sessionStorage.getItem('df_na_gh_user');
+  if(savedUser) ghUsernameInput.value = savedUser;
+  const savedRepo = sessionStorage.getItem('df_na_gh_repo');
+  if(savedRepo) ghRepoInput.value = savedRepo;
+}catch(e){ /* sessionStorage unavailable, skip silently */ }
+
+ghTokenInput.addEventListener('input', ()=>{
+  try{ sessionStorage.setItem('df_na_gh_token', ghTokenInput.value.trim()); }catch(e){}
+});
+document.getElementById('ghForgetTokenBtn').addEventListener('click', ()=>{
+  ghTokenInput.value = '';
+  try{ sessionStorage.removeItem('df_na_gh_token'); }catch(e){}
+  toast('הטוקן נמחק');
+});
+ghUsernameInput.addEventListener('input', ()=>{
+  try{ sessionStorage.setItem('df_na_gh_user', ghUsernameInput.value.trim()); }catch(e){}
+});
+ghRepoInput.addEventListener('input', ()=>{
+  try{ sessionStorage.setItem('df_na_gh_repo', ghRepoInput.value.trim()); }catch(e){}
+});
+
+ghPublishToggle.addEventListener('click', ()=>{
+  const isOpen = ghPublishPanel.style.display === 'block';
+  ghPublishPanel.style.display = isOpen ? 'none' : 'block';
+});
+
+function utf8ToBase64(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+function sanitizeFilenamePart(str){
+  return (str || '').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+ghPublishBtn.addEventListener('click', async ()=>{
+  const token = ghTokenInput.value.trim();
+  const username = ghUsernameInput.value.trim();
+  const repo = ghRepoInput.value.trim();
+  if(!token || !username || !repo){
+    ghPublishStatus.textContent = 'נא למלא שם משתמש, שם ריפו וטוקן';
+    return;
+  }
+  ghPublishBtn.disabled = true;
+  ghPublishStatus.textContent = 'מפרסם לאינטרנט...';
+
+  const titleSlug = sanitizeFilenamePart(bookTitle) || 'book';
+  const fileName = `${titleSlug}-${Date.now()}.html`;
+  const imgUrl = (currentBookEntry && currentBookEntry.ogImageUrl) ? currentBookEntry.ogImageUrl : shareOgImageUrl;
+  const html = buildStandaloneHtml(shareBgColor, shareConfettiTypes, shareTitleColor, customConfettiEmojis, imgUrl);
+
+  try{
+    const res = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${fileName}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'הוספת ספר: ' + bookTitle,
+        content: utf8ToBase64(html)
+      })
+    });
+    if(!res.ok){
+      let msg = 'שגיאה: ' + res.status;
+      try{ const errData = await res.json(); if(errData && errData.message) msg = errData.message; }catch(e){}
+      throw new Error(msg);
+    }
+    const pagesUrl = `https://${username}.github.io/${repo}/${fileName}`;
+    shareUrlInput.value = pagesUrl;
+    if(currentBookEntry) currentBookEntry.hostedUrl = pagesUrl;
+    ghPublishStatus.textContent = 'פורסם בהצלחה! (יכול לקחת דקה-שתיים עד שהקישור יעבוד בפועל)';
+  }catch(err){
+    console.error(err);
+    ghPublishStatus.textContent = 'שגיאה בפרסום: ' + err.message;
+  }
+  ghPublishBtn.disabled = false;
 });
 
 document.querySelectorAll('#titleSwatchRow .swatch').forEach(sw=>{
